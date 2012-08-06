@@ -61,9 +61,45 @@ This function kills the old buffer if it exists."
 
 (defvar wmvc:default-buffer-name "*wmvc-buffer*" "[internal] Default buffer name.")
 
+
+;;; get-text
+
+;; ( (lang-id1 (msg-id1 . "message1") (msg-id2 . "message2") ... )
+;;   (lang-id2 ... ) )
+;; lang-id : t = default, en, ja
+(defvar wmvc:lang-messages nil)
+
+;; messages : (msg-id1 "message1" msg-id2 "message2" ... )
+(defun wmvc:lang-register-messages (lang-id messages)
+  (let* ((lang-pair (assq lang-id wmvc:lang-messages))
+         (alist (and lang-pair (cdr lang-pair))))
+    (unless lang-pair
+      (setq lang-pair (cons lang-id nil))
+      (setq wmvc:lang-messages (cons lang-pair wmvc:lang-messages)))
+    (let ((elms messages) key val)
+      (while elms
+        (setq key (car elms))
+        (setq elms (cdr elms))
+        (setq val (car elms))
+        (setq elms (cdr elms))
+        (setq alist (cons (cons key val) alist)))
+      (setf (cdr lang-pair) alist))
+    lang-pair))
+
+(defun wmvc:get-text (ctx msg-id)
+  (let ((pair (assq (wmvc:context-lang ctx) wmvc:lang-messages)))
+    (unless pair
+      (setq pair (assq t wmvc:lang-messages)))
+    (cond
+     ((null pair) msg-id)
+     (t 
+      (let ((mpair (assq msg-id (cdr pair))))
+        (if mpair (cdr mpair) msg-id))))))
+
+
 ;;; MVC Context
 
-(defstruct wmvc:context template model validations widget-map action-map attributes)
+(defstruct wmvc:context lang template model validations widget-map action-map attributes)
 
 (defun wmvc:context-attr-set (context name value)
   (let ((attrs (wmvc:context-attributes context)))
@@ -129,17 +165,17 @@ This function kills the old buffer if it exists."
          (widget
           (case type
             ('text 
-             (wmvc:tmpl-make-widget-input-text elm-plist))
+             (wmvc:tmpl-make-widget-input-text elm-plist context))
             ('password
-             (wmvc:tmpl-make-widget-input-password elm-plist))
+             (wmvc:tmpl-make-widget-input-password elm-plist context))
             ('checkbox
-             (wmvc:tmpl-make-widget-input-checkbox elm-plist))
+             (wmvc:tmpl-make-widget-input-checkbox elm-plist context))
             ('select
-             (wmvc:tmpl-make-widget-input-select elm-plist))
+             (wmvc:tmpl-make-widget-input-select elm-plist context))
             (t (error "Unknown input type : %s" type)))))
     (wmvc:context-widget-map-add context name widget)))
 
-(defun wmvc:tmpl-make-widget-input-text (elm-plist)
+(defun wmvc:tmpl-make-widget-input-text (elm-plist context)
   (let ((size (plist-get elm-plist ':size))
         (format (plist-get elm-plist ':format)))
     (apply 'widget-create
@@ -148,7 +184,7 @@ This function kills the old buffer if it exists."
             (if size (list :size size))
             (if format (list :format format))))))
 
-(defun wmvc:tmpl-make-widget-input-password (elm-plist)
+(defun wmvc:tmpl-make-widget-input-password (elm-plist context)
   (let ((size (plist-get elm-plist ':size))
         (format (plist-get elm-plist ':format)))
     (apply 'widget-create
@@ -157,14 +193,15 @@ This function kills the old buffer if it exists."
             (if size (list :size size))
             (if format (list :format format))))))
 
-(defun wmvc:tmpl-make-widget-input-checkbox (elm-plist)
+(defun wmvc:tmpl-make-widget-input-checkbox (elm-plist context)
   (widget-create 'checkbox))
 
-(defun wmvc:tmpl-make-widget-input-select (elm-plist)
+(defun wmvc:tmpl-make-widget-input-select (elm-plist context)
   (let ((options (plist-get elm-plist ':options))
         (title   (or (plist-get elm-plist ':title) "select"))
-        (format (or (plist-get elm-plist ':format) "%[%t%] : %v"))
-        (help-echo (or (plist-get elm-plist ':help-echo) "Click to choose")))
+        (format  (or (plist-get elm-plist ':format) "[%[%t%]] %v"))
+        (help-echo (or (plist-get elm-plist ':help-echo)
+                       (wmvc:get-text context 'input-select-click-to-choose))))
     (widget-create
      'menu-choice
      :format format :tag title :help-echo help-echo
@@ -179,6 +216,8 @@ This function kills the old buffer if it exists."
        (loop for i in options
              collect
              (list 'item ':tag (format "%s" i) ':value i)))))))
+
+(wmvc:lang-register-messages 't '(input-select-click-to-choose "Click to choose<>"))
 
 (defun wmvc:tmpl-make-widget-button (elm-plist context)
   (lexical-let* ((action (plist-get elm-plist ':action))
@@ -235,6 +274,10 @@ This function kills the old buffer if it exists."
       (wmvc:context-attr-set ctx 'error (mapconcat 'identify fails "\n"))
       (wmvc:reload-buffer ctx)
       (throw 'fail nil))))
+
+(defun wmvc:validation-not-empty (value)
+  (if (or (null value) (length value))
+      "error message" nil))
 
 
 ;;; action
