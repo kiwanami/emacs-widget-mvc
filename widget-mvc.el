@@ -27,7 +27,7 @@
 ;;  - Data Binding
 ;;  - Validation
 ;;  - Action Mapping
-;;  - Session
+;;  - Session Attributes
 ;; 
 ;; * Widget Template
 ;; 
@@ -37,7 +37,6 @@
 ;; 
 
 ;; Todo
-;;   focus
 ;;   component
 ;;   popup select
 ;;   user-action
@@ -432,6 +431,14 @@ This function kills the old buffer if it exists."
       (setq buffer (wmvc:get-new-buffer)))
     (wmvc:tmpl-build-buffer buffer context)
     buffer))
+
+(defun wmvc:widget-focus-to (name)
+  (let* ((ctx wmvc:context)
+         (widget-map (wmvc:context-widget-map ctx))
+         (widget (cdr (assq name widget-map)))
+         (pos (and widget (widget-get widget ':from))))
+    (when pos
+      (goto-char pos))))
 
 
 ;;==================================================
