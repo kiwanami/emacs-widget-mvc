@@ -43,7 +43,6 @@
 ;;   popup select
 ;;   radio
 ;;   user-action
-;;   auto-language
 
 ;;; Code:
 
@@ -238,7 +237,8 @@ This function kills the old buffer if it exists."
              collect
              (list 'item ':tag (format "%s" i) ':value i)))))))
 
-(wmvc:lang-register-messages 't '(input-select-click-to-choose "Click to choose<>"))
+(wmvc:lang-register-messages 't '(input-select-click-to-choose "Click to choose"))
+(wmvc:lang-register-messages 'Japanese '(input-select-click-to-choose "クリックして選択"))
 
 (defun wmvc:tmpl-make-widget-button (elm-plist context)
   (lexical-let* ((action (plist-get elm-plist ':action))
@@ -307,6 +307,16 @@ This function kills the old buffer if it exists."
       validation-be-less-than "should be less than %s"
       validation-be-longer-than "should be longer than %s."
       validation-be-shorter-than "should be shorter than %s"
+      ))
+(wmvc:lang-register-messages 
+ 'Japanese '(
+      validation-not-be-empty "必須入力"
+      validation-be-integer "整数値"
+      validation-be-decimal-number "数値"
+      validation-be-greater-than "%s 以上の数値"
+      validation-be-less-than "%s 以下の数値"
+      validation-be-longer-than "%s 文字以上"
+      validation-be-shorter-than "%s 文字以下"
       ))
 
 (defun wmvc:validation-not-empty (ctx value &rest args)
@@ -384,12 +394,12 @@ This function kills the old buffer if it exists."
     (wmvc:tmpl-build-buffer buffer context)
     buffer))
 
-(defun* wmvc:build-buffer(&key buffer tmpl model actions validations attributes)
+(defun* wmvc:build-buffer(&key buffer tmpl model actions validations attributes lang)
   (let ((context
          (make-wmvc:context 
           :template tmpl :model model 
           :action-map actions :validations validations
-          :attributes attributes)))
+          :attributes attributes :lang (or lang (intern current-language-environment)))))
     (unless buffer
       (setq buffer (wmvc:get-new-buffer)))
     (wmvc:tmpl-build-buffer buffer context)
