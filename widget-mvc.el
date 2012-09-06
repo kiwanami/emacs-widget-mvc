@@ -37,10 +37,13 @@
 ;; 
 
 ;; Todo
+;;   focus
 ;;   layout
 ;;   component
+;;   popup select
 ;;   radio
 ;;   user-action
+;;   auto-language
 
 ;;; Code:
 
@@ -49,6 +52,19 @@
 
 
 ;;; Utilities
+
+(defmacro wmvc:aif (test-form then-form &rest else-forms)
+  "Anaphoric IF."
+  (declare (debug (form form &rest form)))
+  `(let ((it ,test-form))
+     (if it ,then-form ,@else-forms)))
+(put 'wmvc:aif 'lisp-indent-function 2)
+
+(defmacro wmvc:aand (test &rest rest)
+  "Anaphoric AND."
+  (declare (debug (form &rest form)))
+  `(let ((it ,test))
+     (if it ,(if rest (macroexpand-all `(wmvc:aand ,@rest)) 'it))))
 
 (defun wmvc:get-new-buffer (&optional buffer-name)
   "[internal] Create and return a buffer object.
@@ -86,7 +102,7 @@ This function kills the old buffer if it exists."
       (setf (cdr lang-pair) alist))
     lang-pair))
 
-(defun wmvc:get-text (ctx msg-id)
+(defun wmvc:get-text (ctx msg-id &rest args)
   (let ((pair (assq (wmvc:context-lang ctx) wmvc:lang-messages)))
     (unless pair
       (setq pair (assq t wmvc:lang-messages)))
@@ -94,7 +110,7 @@ This function kills the old buffer if it exists."
      ((null pair) msg-id)
      (t 
       (let ((mpair (assq msg-id (cdr pair))))
-        (if mpair (cdr mpair) msg-id))))))
+        (if mpair (apply 'format (cdr mpair) args) msg-id))))))
 
 
 ;;; MVC Context
@@ -127,6 +143,7 @@ This function kills the old buffer if it exists."
         (model (wmvc:context-model context)))
     (with-current-buffer buffer
       (kill-all-local-variables)
+      (setf (wmvc:context-widget-map context) nil)
       (let ((inhibit-read-only t))
         (erase-buffer))
       (remove-overlays)
@@ -173,6 +190,10 @@ This function kills the old buffer if it exists."
             ('select
              (wmvc:tmpl-make-widget-input-select elm-plist context))
             (t (error "Unknown input type : %s" type)))))
+    (wmvc:aand
+     (wmvc:context-attr-get context 'error)
+     (assq name it) (cdr it)
+     (widget-insert (propertize (concat " (" it ") ") 'face 'compilation-error)))
     (wmvc:context-widget-map-add context name widget)))
 
 (defun wmvc:tmpl-make-widget-input-text (elm-plist context)
@@ -264,20 +285,69 @@ This function kills the old buffer if it exists."
 (defun wmvc:validate-fields (model)
   (let* ((ctx wmvc:context)
          (validations (wmvc:context-validations ctx))
-         (fails 
-          (loop for (name . validation) in validations
+         (fails ; list of (name . fail-message)
+          (loop for (name . vs) in validations
+                for validation-func = (if (consp vs) (car vs) vs)
+                for validation-args = (if (consp vs) (cdr vs))
                 for value = (cdr (assq name model))
-                for result = (funcall validation value)
+                for result = (apply validation-func ctx value validation-args)
                 if result
-                collect result)))
+                collect (cons name result))))
     (when fails
-      (wmvc:context-attr-set ctx 'error (mapconcat 'identify fails "\n"))
+      (wmvc:context-attr-set ctx 'error fails)
       (wmvc:reload-buffer ctx)
       (throw 'fail nil))))
 
-(defun wmvc:validation-not-empty (value)
+(wmvc:lang-register-messages 
+ 't '(
+      validation-not-be-empty "should not empty."
+      validation-be-integer "should be a number."
+      validation-be-decimal-number "should be a decimal number."
+      validation-be-greater-than "should be greater than %s."
+      validation-be-less-than "should be less than %s"
+      validation-be-longer-than "should be longer than %s."
+      validation-be-shorter-than "should be shorter than %s"
+      ))
+
+(defun wmvc:validation-not-empty (ctx value &rest args)
   (if (or (null value) (length value))
-      "error message" nil))
+      (wmvc:get-text ctx 'validation-not-be-empty)
+    nil))
+
+(defun wmvc:validation-integer (ctx value &rest args)
+  (let ((min (plist-get args ':min))
+        (max (plist-get args ':max)))
+    (cond
+     ((not (string-match "^[ ]*[-+]?[0-9]+[ ]*$" value))
+      (wmvc:get-text ctx 'validation-be-integer))
+     ((and min (< (string-to-int value) min))
+      (wmvc:get-text ctx 'validation-be-greater-than min))
+     ((and max (> (string-to-int value) max))
+      (wmvc:get-text ctx 'validation-be-less-than max))
+     (t nil))))
+
+(defun wmvc:validation-decimal (ctx value &rest args)
+  (let ((min (plist-get args ':min))
+        (max (plist-get args ':max)))
+    (cond
+     ((not (string-match "^[ ]*[-+]?[0-9]+\\(\\.[0-9]*\\)?[ ]*$" value))
+      (wmvc:get-text ctx 'validation-be-decimal-number))
+     ((and min (< (string-to-number value) min))
+      (wmvc:get-text ctx 'validation-be-greater-than min))
+     ((and max (> (string-to-number value) max))
+      (wmvc:get-text ctx 'validation-be-less-than max))
+     (t nil))))
+
+(defun wmvc:validation-length (ctx value &rest args)
+  (let ((min (plist-get args ':min))
+        (max (plist-get args ':max)))
+    (cond
+     ((and (null min) (null max)) nil)
+     ((and min (< (length value) min))
+      (wmvc:get-text ctx 'validation-be-longer-than min))
+     ((and max (> (length value) max))
+      (wmvc:get-text ctx 'validation-be-shorter-than max))
+     (t nil))))
 
 
 ;;; action
@@ -308,9 +378,9 @@ This function kills the old buffer if it exists."
     new-buf))
 
 (defun wmvc:rebuild-buffer (context)
-  (let ((buf-name (buffer-name))
-        (pos (point))
-        (buffer (wmvc:get-new-buffer buf-name)))
+  (let* ((buf-name (buffer-name))
+         (pos (point))
+         (buffer (wmvc:get-new-buffer buf-name)))
     (wmvc:tmpl-build-buffer buffer context)
     buffer))
 
@@ -326,6 +396,7 @@ This function kills the old buffer if it exists."
     buffer))
 
 
+;;==================================================
 ;;; debug
 
 (defun wmvc:demo-template ()
@@ -338,7 +409,7 @@ This function kills the old buffer if it exists."
                "  Input A  : "
                (input :name input-a :type text :size 30) BR
                "  Input B  : "
-               (input :name input-b :type text :size 30) BR
+               (input :name input-b :type text :size 30) "(decimal 0 - 12)" BR
                "  Password : "
                (input :name password :type password :size 20) BR
                "  Option   : "
@@ -356,10 +427,14 @@ This function kills the old buffer if it exists."
                "    " (button :title "OK" :action on-submit :validation t)
                "  " (button :title "Cancel" :action on-cancel)))
         (model 
-         '((input-a . "")  (input-b . "initial value")
+         '((input-a . "")  (input-b . "6")
            (password . "") (check-a . t) (check-b . nil) (check-c . nil)
            (select1 . "select2") (select2 . 3)))
-        (validations '())
+        (validations
+         '((input-a . wmvc:validation-integer)
+           (input-b . (wmvc:validation-decimal :min 0 :max 12))
+           (password . (wmvc:validation-length :min 5 :max 10))
+           ))
         (action-mapping 
          '((on-submit . wmvc:demo-submit-action)
            (on-cancel . (lambda (model) 
