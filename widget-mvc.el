@@ -38,10 +38,8 @@
 
 ;; Todo
 ;;   focus
-;;   layout
 ;;   component
 ;;   popup select
-;;   radio
 ;;   user-action
 
 ;;; Code:
@@ -113,6 +111,15 @@ This function kills the old buffer if it exists."
 
 
 ;;; MVC Context
+
+;; [wmvc:context]
+;; lang        : a symbol of the language for messages. If `nil', the framework displays default messages.
+;; template    : a list of the form template 
+;; model       : an alist of the current model data
+;; validations : an alist of the validation functions
+;; widget-map  : an alist of the widget instances
+;; action-map  : an alist of the action functions
+;; attributes  : an alist of custom attributes for user programs
 
 (defstruct wmvc:context lang template model validations widget-map action-map attributes)
 
@@ -186,6 +193,8 @@ This function kills the old buffer if it exists."
              (wmvc:tmpl-make-widget-input-password elm-plist context))
             ('checkbox
              (wmvc:tmpl-make-widget-input-checkbox elm-plist context))
+            ('radio
+             (wmvc:tmpl-make-widget-input-radio elm-plist context))
             ('select
              (wmvc:tmpl-make-widget-input-select elm-plist context))
             (t (error "Unknown input type : %s" type)))))
@@ -215,6 +224,25 @@ This function kills the old buffer if it exists."
 
 (defun wmvc:tmpl-make-widget-input-checkbox (elm-plist context)
   (widget-create 'checkbox))
+
+(defun wmvc:tmpl-make-widget-input-radio (elm-plist context)
+  (let ((options (plist-get elm-plist ':options))
+        (indent (or (plist-get elm-plist ':indent)
+                    (current-column))))
+    (widget-create
+     'radio-button-choice
+     :indent indent
+     :args
+     (cond
+      ((consp (car options))
+       (loop for i in options
+             for (item-title . value) = i
+             collect
+             (list 'item ':tag item-title ':value value)))
+      (t
+       (loop for i in options
+             collect
+             (list 'item ':tag (format "%s" i) ':value i)))))))
 
 (defun wmvc:tmpl-make-widget-input-select (elm-plist context)
   (let ((options (plist-get elm-plist ':options))
@@ -426,6 +454,10 @@ This function kills the old buffer if it exists."
                "Alpha" (input :name check-a :type checkbox) " "
                "Beta"  (input :name check-b :type checkbox) " "
                "Gamma" (input :name check-c :type checkbox) BR
+               "  Radio Select : " 
+               (input :name radio-a :type radio
+                      :options (("select1" . 1) ("select2" . 2) ("select3" . 3) ("select4" . 4)))
+               BR
                "  Select1  : "
                (input :name select1 :type select 
                       :options ("select1" "select2" "select3" "select4"))
@@ -439,7 +471,7 @@ This function kills the old buffer if it exists."
         (model 
          '((input-a . "")  (input-b . "6")
            (password . "") (check-a . t) (check-b . nil) (check-c . nil)
-           (select1 . "select2") (select2 . 3)))
+           (radio-a . 4) (select1 . "select2") (select2 . 3)))
         (validations
          '((input-a . wmvc:validation-integer)
            (input-b . (wmvc:validation-decimal :min 0 :max 12))
