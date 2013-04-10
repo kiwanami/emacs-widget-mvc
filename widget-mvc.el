@@ -1,6 +1,6 @@
 ;;; widget-mvc.el --- MVC framework for the emacs widgets
 
-;; Copyright (C) 2012  SAKURAI Masashi
+;; Copyright (C) 2013  SAKURAI Masashi
 
 ;; Author:  <m.sakurai at kiwanami.net>
 ;; Keywords: lisp, widget
@@ -48,13 +48,6 @@
 
 
 ;;; Utilities
-
-(defmacro wmvc:aif (test-form then-form &rest else-forms)
-  "Anaphoric IF."
-  (declare (debug (form form &rest form)))
-  `(let ((it ,test-form))
-     (if it ,then-form ,@else-forms)))
-(put 'wmvc:aif 'lisp-indent-function 2)
 
 (defmacro wmvc:aand (test &rest rest)
   "Anaphoric AND."
