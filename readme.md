@@ -90,7 +90,7 @@ Todo
 
 Todo
 
-![https://cacoo.com/diagrams/O42ZDzbVzZx31o7e-EFE0F.png](Lifecycle Overview)
+![Lifecycle Overview](https://cacoo.com/diagrams/O42ZDzbVzZx31o7e-EFE0F.png)
 
 ### Details
 
