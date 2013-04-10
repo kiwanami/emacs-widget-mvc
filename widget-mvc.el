@@ -341,7 +341,7 @@ This function kills the old buffer if it exists."
       ))
 
 (defun wmvc:validation-not-empty (ctx value &rest args)
-  (if (or (null value) (length value))
+  (if (or (null value) (zerop (length value)))
       (wmvc:get-text ctx 'validation-not-be-empty)
     nil))
 
