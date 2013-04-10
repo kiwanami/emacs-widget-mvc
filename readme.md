@@ -72,6 +72,8 @@ Todo
 ;; M-x wmvc:demo
 ```
 
+![Screenshot Demo](demo1.png)
+
 # Installation
 
 ## Manual installation
