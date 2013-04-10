@@ -289,8 +289,9 @@ This function kills the old buffer if it exists."
         for (fname . data) = (assq name model)
         if fname
         do 
-        (widget-value-set widget data))
-  (widget-setup))
+        (when data 
+          (widget-value-set widget data)
+          (widget-setup))))
 
 (defun wmvc:bind-from-widgets (context)
   (loop with widget-map = (wmvc:context-widget-map context)
