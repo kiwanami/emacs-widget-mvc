@@ -1,9 +1,9 @@
 ;;; widget-mvc.el --- MVC framework for the emacs widgets
 
-;; Copyright (C) 2013  SAKURAI Masashi
-
-;; Author:  <m.sakurai at kiwanami.net>
+;; Author: SAKURAI Masashi <m.sakurai at kiwanami.net>
+;; Copyright (C) 2013 
 ;; Keywords: lisp, widget
+;; Version: 0.0.1
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
