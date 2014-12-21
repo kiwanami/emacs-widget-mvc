@@ -182,7 +182,8 @@ This function kills the old buffer if it exists."
             ('text 
              (wmvc:tmpl-make-widget-input-text elm-plist context))
             ('password
-             (wmvc:tmpl-make-widget-input-password elm-plist context))
+             (plist-put elm-plist ':secret t)
+             (wmvc:tmpl-make-widget-input-text elm-plist context))
             ('checkbox
              (wmvc:tmpl-make-widget-input-checkbox elm-plist context))
             ('radio
@@ -198,21 +199,20 @@ This function kills the old buffer if it exists."
 
 (defun wmvc:tmpl-make-widget-input-text (elm-plist context)
   (let ((size (plist-get elm-plist ':size))
-        (format (plist-get elm-plist ':format)))
+        (format (plist-get elm-plist ':format))
+        (keymap (plist-get elm-plist ':keymap))
+        (area (plist-get elm-plist ':area))
+        (secret (if (plist-get elm-plist ':secret) ?*))
+        (value (cdr-safe (assq (plist-get elm-plist ':name)
+                               (wmvc:context-model context)))))
     (apply 'widget-create
            (append
-            '(editable-field)
+            (if area '(text) '(editable-field))
+            (if secret (list :secret secret))
             (if size (list :size size))
-            (if format (list :format format))))))
-
-(defun wmvc:tmpl-make-widget-input-password (elm-plist context)
-  (let ((size (plist-get elm-plist ':size))
-        (format (plist-get elm-plist ':format)))
-    (apply 'widget-create
-           (append
-            '(editable-field :secret ?*)
-            (if size (list :size size))
-            (if format (list :format format))))))
+            (if format (list :format format))
+            (if keymap (list :keymap keymap))
+            (if value (list :value value))))))
 
 (defun wmvc:tmpl-make-widget-input-checkbox (elm-plist context)
   (widget-create 'checkbox))
@@ -287,9 +287,12 @@ This function kills the old buffer if it exists."
         with model = (wmvc:context-model context)
         for (name . widget) in widget-map
         for (fname . data) = (assq name model)
-        if fname
         do 
-        (when data 
+        (when (and fname
+                   data
+                   ;; `widget-value-set' might cause widget value is lost on some widgets.
+                   ;; So, the widget value is set in `wmvc:tmpl-make-widget-input'.
+                   (not (memq (widget-type widget) '(editable-field text))))
           (widget-value-set widget data)
           (widget-setup))))
 
