@@ -45,6 +45,7 @@
 
 (eval-when-compile (require 'cl))
 (require 'widget)
+(require 'wid-edit)
 
 
 ;;; Utilities
@@ -55,6 +56,8 @@
   `(let ((it ,test))
      (if it ,(if rest (macroexpand-all `(wmvc:aand ,@rest)) 'it))))
 
+(defvar wmvc:default-buffer-name "*wmvc-buffer*" "[internal] Default buffer name.")
+
 (defun wmvc:get-new-buffer (&optional buffer-name)
   "[internal] Create and return a buffer object.
 This function kills the old buffer if it exists."
@@ -63,8 +66,6 @@ This function kills the old buffer if it exists."
     (when (and buf (buffer-live-p buf))
       (kill-buffer buf)))
   (get-buffer-create buffer-name))
-
-(defvar wmvc:default-buffer-name "*wmvc-buffer*" "[internal] Default buffer name.")
 
 
 ;;; get-text
@@ -114,6 +115,8 @@ This function kills the old buffer if it exists."
 ;; attributes  : an alist of custom attributes for user programs
 
 (defstruct wmvc:context lang template model validations widget-map action-map attributes)
+
+(defvar wmvc:context nil)
 
 (defun wmvc:context-attr-set (context name value)
   (let ((attrs (wmvc:context-attributes context)))
@@ -351,9 +354,9 @@ This function kills the old buffer if it exists."
     (cond
      ((not (string-match "^[ ]*[-+]?[0-9]+[ ]*$" value))
       (wmvc:get-text ctx 'validation-be-integer))
-     ((and min (< (string-to-int value) min))
+     ((and min (< (string-to-number value) min))
       (wmvc:get-text ctx 'validation-be-greater-than min))
-     ((and max (> (string-to-int value) max))
+     ((and max (> (string-to-number value) max))
       (wmvc:get-text ctx 'validation-be-less-than max))
      (t nil))))
 
