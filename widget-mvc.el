@@ -242,22 +242,23 @@ This function kills the old buffer if it exists."
   (let ((options (plist-get elm-plist ':options))
         (title   (or (plist-get elm-plist ':title) "select"))
         (format  (or (plist-get elm-plist ':format) "[%[%t%]] %v"))
+        (void    (or (plist-get elm-plist ':void) '(item :format "*Not Selected*")))
         (help-echo (or (plist-get elm-plist ':help-echo)
                        (wmvc:get-text context 'input-select-click-to-choose))))
     (widget-create
      'menu-choice
-     :format format :tag title :help-echo help-echo
+     :format format :tag title :help-echo help-echo :void void
      :args
      (cond
       ((consp (car options))
        (loop for i in options
              for (item-title . value) = i
              collect
-             (list 'item ':tag item-title ':value value)))
+             (list 'item ':tag item-title ':value value ':format "%t")))
       (t
        (loop for i in options
              collect
-             (list 'item ':tag (format "%s" i) ':value i)))))))
+             (list 'item ':tag (format "%s" i) ':value i ':format "%t")))))))
 
 (wmvc:lang-register-messages 't '(input-select-click-to-choose "Click to choose"))
 (wmvc:lang-register-messages 'Japanese '(input-select-click-to-choose "クリックして選択"))
