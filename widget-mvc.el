@@ -143,7 +143,6 @@ This function kills the old buffer if it exists."
   (let ((tmpl-src (wmvc:context-template context))
         (model (wmvc:context-model context)))
     (with-current-buffer buffer
-      (kill-all-local-variables)
       (setf (wmvc:context-widget-map context) nil)
       (let ((inhibit-read-only t))
         (erase-buffer))
