@@ -222,21 +222,31 @@ This function kills the old buffer if it exists."
 (defun wmvc:tmpl-make-widget-input-radio (elm-plist context)
   (let ((options (plist-get elm-plist ':options))
         (indent (or (plist-get elm-plist ':indent)
-                    (current-column))))
+                    (current-column)))
+        (format  (or (plist-get elm-plist ':format) "%b%v"))
+        (horizontal (plist-get elm-plist ':horizontal)))
     (widget-create
      'radio-button-choice
-     :indent indent
+     :indent (if horizontal 0 indent) :entry-format format
      :args
      (cond
       ((consp (car options))
-       (loop for i in options
+       (loop for i = (pop options)
+             while i
              for (item-title . value) = i
+             for format = (cond ((and horizontal (car options)) "%t ")
+                                ((car options)                  "%t\n")
+                                (t                              "%t"))
              collect
-             (list 'item ':tag item-title ':value value)))
+             (list 'item ':tag item-title ':value value ':format format)))
       (t
-       (loop for i in options
+       (loop for i = (pop options)
+             while i
+             for format = (cond ((and horizontal (car options)) "%t ")
+                                ((car options)                  "%t\n")
+                                (t                              "%t"))
              collect
-             (list 'item ':tag (format "%s" i) ':value i)))))))
+             (list 'item ':tag (format "%s" i) ':value i ':format format)))))))
 
 (defun wmvc:tmpl-make-widget-input-select (elm-plist context)
   (let ((options (plist-get elm-plist ':options))
