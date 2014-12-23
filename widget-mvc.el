@@ -197,6 +197,8 @@ This function kills the old buffer if it exists."
          (name (plist-get elm-plist ':name))
          (widget
           (case type
+            ('const
+             (wmvc:tmpl-make-widget-input-const elm-plist context))
             ('text 
              (wmvc:tmpl-make-widget-input-text elm-plist context))
             ('password
@@ -214,6 +216,20 @@ This function kills the old buffer if it exists."
      (assq name it) (cdr it)
      (widget-insert (propertize (concat " (" it ") ") 'face 'compilation-error)))
     (wmvc:context-widget-map-add context name widget)))
+
+(defun wmvc:tmpl-make-widget-input-const (elm-plist context)
+  (let* ((name (plist-get elm-plist ':name))
+         (model (wmvc:context-model context))
+         (pair (assq name model))
+         (value (or (cdr-safe pair)
+                    (plist-get elm-plist ':value)))
+         (face (plist-get elm-plist ':face)))
+    (when pair
+      (setq model (delq pair model)))
+    (setf (wmvc:context-model context) (cons (cons name value) model))
+    (apply 'widget-create
+           (append '(const :format "%{%t%}")
+                   (if face (list :sample-face face))))))
 
 (defun wmvc:tmpl-make-widget-input-text (elm-plist context)
   (let ((size (plist-get elm-plist ':size))
