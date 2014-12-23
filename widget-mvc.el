@@ -167,6 +167,22 @@ This function kills the old buffer if it exists."
     (wmvc:context-attr-set context 'error nil)
     buffer))
 
+(defun wmvc:tmpl-widget-create (elm-plist context type &rest args)
+  (declare (indent 2))
+  (lexical-let* ((action (plist-get elm-plist ':action))
+                 (need-validation (plist-get elm-plist ':validation))
+                 (notify (lambda (&rest ignore)
+                           (wmvc:action-invoke action need-validation)))
+                 (args (loop for (k v) on args by 'cddr
+                             if v append (list k v)))
+                 (help-echo (or (plist-get args ':help-echo)
+                                (plist-get elm-plist ':help-echo))))
+    (if help-echo (plist-put args ':help-echo help-echo))
+    (apply 'widget-create
+           (append (list type)
+                   (if action (list :notify notify))
+                   args))))
+
 (defun wmvc:tmpl-make-widget (elm context)
   "[internal] "
   (let* ((elm-type (car elm))
@@ -207,17 +223,12 @@ This function kills the old buffer if it exists."
         (secret (if (plist-get elm-plist ':secret) ?*))
         (value (cdr-safe (assq (plist-get elm-plist ':name)
                                (wmvc:context-model context)))))
-    (apply 'widget-create
-           (append
-            (if area '(text) '(editable-field))
-            (if secret (list :secret secret))
-            (if size (list :size size))
-            (if format (list :format format))
-            (if keymap (list :keymap keymap))
-            (if value (list :value value))))))
+    (wmvc:tmpl-widget-create elm-plist context
+      (if area 'text 'editable-field)
+      :secret secret :size size :format format :keymap keymap :value value)))
 
 (defun wmvc:tmpl-make-widget-input-checkbox (elm-plist context)
-  (widget-create 'checkbox))
+  (wmvc:tmpl-widget-create elm-plist context 'checkbox))
 
 (defun wmvc:tmpl-make-widget-input-radio (elm-plist context)
   (let ((options (plist-get elm-plist ':options))
@@ -225,28 +236,28 @@ This function kills the old buffer if it exists."
                     (current-column)))
         (format  (or (plist-get elm-plist ':format) "%b%v"))
         (horizontal (plist-get elm-plist ':horizontal)))
-    (widget-create
-     'radio-button-choice
-     :indent (if horizontal 0 indent) :entry-format format
-     :args
-     (cond
-      ((consp (car options))
-       (loop for i = (pop options)
-             while i
-             for (item-title . value) = i
-             for format = (cond ((and horizontal (car options)) "%t ")
-                                ((car options)                  "%t\n")
-                                (t                              "%t"))
-             collect
-             (list 'item ':tag item-title ':value value ':format format)))
-      (t
-       (loop for i = (pop options)
-             while i
-             for format = (cond ((and horizontal (car options)) "%t ")
-                                ((car options)                  "%t\n")
-                                (t                              "%t"))
-             collect
-             (list 'item ':tag (format "%s" i) ':value i ':format format)))))))
+    (wmvc:tmpl-widget-create elm-plist context
+      'radio-button-choice
+      :indent (if horizontal 0 indent) :entry-format format
+      :args
+      (cond
+       ((consp (car options))
+        (loop for i = (pop options)
+              while i
+              for (item-title . value) = i
+              for format = (cond ((and horizontal (car options)) "%t ")
+                                 ((car options)                  "%t\n")
+                                 (t                              "%t"))
+              collect
+              (list 'item ':tag item-title ':value value ':format format)))
+       (t
+        (loop for i = (pop options)
+              while i
+              for format = (cond ((and horizontal (car options)) "%t ")
+                                 ((car options)                  "%t\n")
+                                 (t                              "%t"))
+              collect
+              (list 'item ':tag (format "%s" i) ':value i ':format format)))))))
 
 (defun wmvc:tmpl-make-widget-input-select (elm-plist context)
   (let ((options (plist-get elm-plist ':options))
@@ -255,34 +266,31 @@ This function kills the old buffer if it exists."
         (void    (or (plist-get elm-plist ':void) '(item :format "*Not Selected*")))
         (help-echo (or (plist-get elm-plist ':help-echo)
                        (wmvc:get-text context 'input-select-click-to-choose))))
-    (widget-create
-     'menu-choice
-     :format format :tag title :help-echo help-echo :void void
-     :args
-     (cond
-      ((consp (car options))
-       (loop for i in options
-             for (item-title . value) = i
-             collect
-             (list 'item ':tag item-title ':value value ':format "%t")))
-      (t
-       (loop for i in options
-             collect
-             (list 'item ':tag (format "%s" i) ':value i ':format "%t")))))))
+    (wmvc:tmpl-widget-create elm-plist context
+      'menu-choice
+      :format format :tag title :help-echo help-echo :void void
+      :args
+      (cond
+       ((consp (car options))
+        (loop for i in options
+              for (item-title . value) = i
+              collect
+              (list 'item ':tag item-title ':value value ':format "%t")))
+       (t
+        (loop for i in options
+              collect
+              (list 'item ':tag (format "%s" i) ':value i ':format "%t")))))))
 
 (wmvc:lang-register-messages 't '(input-select-click-to-choose "Click to choose"))
 (wmvc:lang-register-messages 'Japanese '(input-select-click-to-choose "クリックして選択"))
 
 (defun wmvc:tmpl-make-widget-button (elm-plist context)
-  (lexical-let* ((action (plist-get elm-plist ':action))
-                 (need-validation (plist-get elm-plist ':validation))
-                 (widget
-                  (widget-create
-                   'push-button
-                   :notify (lambda (&rest ignore) 
-                             (wmvc:action-invoke action need-validation))
-                   (plist-get elm-plist ':title))))
-    (wmvc:context-widget-map-add context action widget)))
+  (let ((name (plist-get elm-plist ':name))
+        (widget (wmvc:tmpl-widget-create elm-plist context
+                  'push-button
+                  :value (plist-get elm-plist ':title))))
+    (when name
+      (wmvc:context-widget-map-add context name widget))))
 
 (defun wmvc:tmpl-make-widget-message (elm-plist context)
   (let* ((key (plist-get elm-plist ':key)) 
