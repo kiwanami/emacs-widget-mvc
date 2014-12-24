@@ -46,6 +46,7 @@
 (eval-when-compile (require 'cl))
 (require 'widget)
 (require 'wid-edit)
+(require 'date-field nil t)
 
 
 ;;; Utilities
@@ -208,6 +209,8 @@ This function kills the old buffer if it exists."
              (wmvc:tmpl-make-widget-input-radio elm-plist context))
             ('select
              (wmvc:tmpl-make-widget-input-select elm-plist context))
+            ('date
+             (wmvc:tmpl-make-widget-input-date elm-plist context))
             (t (error "Unknown input type : %s" type)))))
     (wmvc:aand
      (wmvc:context-attr-get context 'error)
@@ -283,6 +286,17 @@ This function kills the old buffer if it exists."
 
 (wmvc:lang-register-messages 't '(input-select-click-to-choose "Click to choose"))
 (wmvc:lang-register-messages 'Japanese '(input-select-click-to-choose "クリックして選択"))
+
+(defun wmvc:tmpl-make-widget-input-date (elm-plist context)
+  (if (not (featurep 'date-field))
+      (error "Can't make date field widget : date-field is not installed yet.")
+    (let ((separator (plist-get elm-plist ':separator))
+          (year (plist-get elm-plist ':year))
+          (month (plist-get elm-plist ':month))
+          (day (plist-get elm-plist ':day)))
+      (wmvc:tmpl-widget-create elm-plist context
+        'date-field
+        :separator separator :year year :month month :day day))))
 
 (defun wmvc:tmpl-make-widget-button (elm-plist context)
   (let ((name (plist-get elm-plist ':name))
