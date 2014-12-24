@@ -209,7 +209,9 @@ This function kills the old buffer if it exists."
             ('radio
              (wmvc:tmpl-make-widget-input-radio elm-plist context))
             ('select
-             (wmvc:tmpl-make-widget-input-select elm-plist context))
+             (if (plist-get elm-plist ':multiple)
+                 (wmvc:tmpl-make-widget-input-mselect elm-plist context)
+               (wmvc:tmpl-make-widget-input-select elm-plist context)))
             (t (error "Unknown input type : %s" type)))))
     (wmvc:aand
      (wmvc:context-attr-get context 'error)
@@ -299,6 +301,35 @@ This function kills the old buffer if it exists."
 
 (wmvc:lang-register-messages 't '(input-select-click-to-choose "Click to choose"))
 (wmvc:lang-register-messages 'Japanese '(input-select-click-to-choose "クリックして選択"))
+
+(defun wmvc:tmpl-make-widget-input-mselect (elm-plist context)
+  (let ((options (plist-get elm-plist ':options))
+        (indent (or (plist-get elm-plist ':indent)
+                    (current-column)))
+        (format  (or (plist-get elm-plist ':format) "%b%v"))
+        (horizontal (plist-get elm-plist ':horizontal)))
+    (wmvc:tmpl-widget-create elm-plist context
+      'checklist
+      :indent (if horizontal 0 indent) :entry-format format
+      :args
+      (cond
+       ((consp (car options))
+        (loop for i = (pop options)
+              while i
+              for (item-title . value) = i
+              for format = (cond ((and horizontal (car options)) "%t ")
+                                 ((car options)                  "%t\n")
+                                 (t                              "%t"))
+              collect
+              (list 'item ':tag item-title ':value value ':format format)))
+       (t
+        (loop for i = (pop options)
+              while i
+              for format = (cond ((and horizontal (car options)) "%t ")
+                                 ((car options)                  "%t\n")
+                                 (t                              "%t"))
+              collect
+              (list 'item ':tag (format "%s" i) ':value i ':format format)))))))
 
 (defun wmvc:tmpl-make-widget-button (elm-plist context)
   (let ((name (plist-get elm-plist ':name))
