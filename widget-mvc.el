@@ -46,6 +46,7 @@
 (eval-when-compile (require 'cl))
 (require 'widget)
 (require 'wid-edit)
+(require 'date-field nil t)
 
 
 ;;; Utilities
@@ -214,6 +215,8 @@ This function kills the old buffer if it exists."
                (wmvc:tmpl-make-widget-input-select elm-plist context)))
             ('link
              (wmvc:tmpl-make-widget-input-link elm-plist context))
+            ('date
+             (wmvc:tmpl-make-widget-input-date elm-plist context))
             (t (error "Unknown input type : %s" type)))))
     (wmvc:aand
      (wmvc:context-attr-get context 'error)
@@ -357,6 +360,17 @@ This function kills the old buffer if it exists."
     (wmvc:tmpl-widget-create elm-plist context
       type
       :tag title :button-face face :mouse-face 'highlight :pressed-face 'highlight)))
+
+(defun wmvc:tmpl-make-widget-input-date (elm-plist context)
+  (if (not (featurep 'date-field))
+      (error "Can't make date field widget : date-field is not installed yet.")
+    (let ((separator (plist-get elm-plist ':separator))
+          (year (plist-get elm-plist ':year))
+          (month (plist-get elm-plist ':month))
+          (day (plist-get elm-plist ':day)))
+      (wmvc:tmpl-widget-create elm-plist context
+        'date-field
+        :separator separator :year year :month month :day day))))
 
 (defun wmvc:tmpl-make-widget-button (elm-plist context)
   (let ((name (plist-get elm-plist ':name))
@@ -564,13 +578,18 @@ This function kills the old buffer if it exists."
                "  Select2  : "
                (input :name select2 :type select :multiple t
                       :options (("select1" . 1) ("select2" . 2) ("select3" . 3) ("select4" . 4)))
+               BR
+               "  Date : "
+               (input :name mdate :type date)
                BR BR
                "    " (button :title "OK" :action on-submit :validation t)
                "  " (button :title "Cancel" :action on-cancel)))
         (model 
          '((input-a . "")  (input-b . "6")
            (password . "") (check-a . t) (check-b . nil) (check-c . nil)
-           (radio-a . 4) (select1 . "select2") (select2 . 3)))
+           (radio-a . 4) (select1 . "select2") (select2 . (3))
+           (mdate )
+           ))
         (validations
          '((input-a . wmvc:validation-integer)
            (input-b . (wmvc:validation-decimal :min 0 :max 12))
