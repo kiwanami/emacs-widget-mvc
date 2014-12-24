@@ -208,6 +208,8 @@ This function kills the old buffer if it exists."
              (wmvc:tmpl-make-widget-input-radio elm-plist context))
             ('select
              (wmvc:tmpl-make-widget-input-select elm-plist context))
+            ('link
+             (wmvc:tmpl-make-widget-input-link elm-plist context))
             (t (error "Unknown input type : %s" type)))))
     (wmvc:aand
      (wmvc:context-attr-get context 'error)
@@ -283,6 +285,31 @@ This function kills the old buffer if it exists."
 
 (wmvc:lang-register-messages 't '(input-select-click-to-choose "Click to choose"))
 (wmvc:lang-register-messages 'Japanese '(input-select-click-to-choose "クリックして選択"))
+
+(defun wmvc:tmpl-make-widget-input-link (elm-plist context)
+  (let* ((name (plist-get elm-plist ':name))
+         (model (wmvc:context-model context))
+         (pair (assq name model))
+         (url (plist-get elm-plist ':url))
+         (info (plist-get elm-plist ':info))
+         (file (plist-get elm-plist ':file))
+         (value (or url
+                    info
+                    file
+                    (cdr-safe pair)
+                    (plist-get elm-plist ':value)))
+         (title (or (plist-get elm-plist ':title) value))
+         (type (cond (url  'url-link)
+                     (info 'info-link)
+                     (file 'file-link)
+                     (t    'link)))
+         (face (plist-get elm-plist ':face)))
+    (when pair
+      (setq model (delq pair model)))
+    (setf (wmvc:context-model context) (cons (cons name value) model))
+    (wmvc:tmpl-widget-create elm-plist context
+      type
+      :tag title :button-face face :mouse-face 'highlight :pressed-face 'highlight)))
 
 (defun wmvc:tmpl-make-widget-button (elm-plist context)
   (let ((name (plist-get elm-plist ':name))
