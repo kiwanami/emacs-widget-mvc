@@ -212,6 +212,8 @@ This function kills the old buffer if it exists."
              (if (plist-get elm-plist ':multiple)
                  (wmvc:tmpl-make-widget-input-mselect elm-plist context)
                (wmvc:tmpl-make-widget-input-select elm-plist context)))
+            ('link
+             (wmvc:tmpl-make-widget-input-link elm-plist context))
             (t (error "Unknown input type : %s" type)))))
     (wmvc:aand
      (wmvc:context-attr-get context 'error)
@@ -330,6 +332,31 @@ This function kills the old buffer if it exists."
                                  (t                              "%t"))
               collect
               (list 'item ':tag (format "%s" i) ':value i ':format format)))))))
+
+(defun wmvc:tmpl-make-widget-input-link (elm-plist context)
+  (let* ((name (plist-get elm-plist ':name))
+         (model (wmvc:context-model context))
+         (pair (assq name model))
+         (url (plist-get elm-plist ':url))
+         (info (plist-get elm-plist ':info))
+         (file (plist-get elm-plist ':file))
+         (value (or url
+                    info
+                    file
+                    (cdr-safe pair)
+                    (plist-get elm-plist ':value)))
+         (title (or (plist-get elm-plist ':title) value))
+         (type (cond (url  'url-link)
+                     (info 'info-link)
+                     (file 'file-link)
+                     (t    'link)))
+         (face (plist-get elm-plist ':face)))
+    (when pair
+      (setq model (delq pair model)))
+    (setf (wmvc:context-model context) (cons (cons name value) model))
+    (wmvc:tmpl-widget-create elm-plist context
+      type
+      :tag title :button-face face :mouse-face 'highlight :pressed-face 'highlight)))
 
 (defun wmvc:tmpl-make-widget-button (elm-plist context)
   (let ((name (plist-get elm-plist ':name))
@@ -535,7 +562,7 @@ This function kills the old buffer if it exists."
                       :options ("select1" "select2" "select3" "select4"))
                BR
                "  Select2  : "
-               (input :name select2 :type select 
+               (input :name select2 :type select :multiple t
                       :options (("select1" . 1) ("select2" . 2) ("select3" . 3) ("select4" . 4)))
                BR BR
                "    " (button :title "OK" :action on-submit :validation t)
