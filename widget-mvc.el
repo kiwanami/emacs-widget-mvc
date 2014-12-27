@@ -3,7 +3,7 @@
 ;; Author: SAKURAI Masashi <m.sakurai at kiwanami.net>
 ;; Copyright (C) 2013 
 ;; Keywords: lisp, widget
-;; Version: 0.0.1
+;; Version: 0.0.2
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -73,13 +73,22 @@ This function kills the old buffer if it exists."
 
 ;; ( (lang-id1 (msg-id1 . "message1") (msg-id2 . "message2") ... )
 ;;   (lang-id2 ... ) )
-;; lang-id : t = default, en, ja
+;; lang-id : t = English
 (defvar wmvc:lang-messages nil)
 
-;; messages : (msg-id1 "message1" msg-id2 "message2" ... )
 (defun wmvc:lang-register-messages (lang-id messages)
-  (let* ((lang-pair (assq lang-id wmvc:lang-messages))
+  "Regist messages which are returned by `wmvc:get-text'.
+
+LANG-ID is a symbol which equals to a one of keys of `language-info-alist'.
+For check the allowed value, see customize of `current-language-environment'.
+If this value is t, it's considered as 'English.
+
+MESSAGES : (msg-id1 \"message1\" msg-id2 \"message2\" ... )"
+  (let* ((lang-id (if (eq lang-id t) 'English lang-id))
+         (lang-pair (assq lang-id wmvc:lang-messages))
          (alist (and lang-pair (cdr lang-pair))))
+    (unless (assoc (symbol-name lang-id) language-info-alist)
+      (error "Unknown language : %s" lang-id))
     (unless lang-pair
       (setq lang-pair (cons lang-id nil))
       (setq wmvc:lang-messages (cons lang-pair wmvc:lang-messages)))
@@ -94,9 +103,14 @@ This function kills the old buffer if it exists."
     lang-pair))
 
 (defun wmvc:get-text (ctx msg-id &rest args)
-  (let ((pair (assq (wmvc:context-lang ctx) wmvc:lang-messages)))
+  "Return a message of MSG-ID.
+CTX is a `wmvc:context'. If nil, use `current-language-environment'."
+  (let* ((lang-id (if (wmvc:context-p ctx)
+                      (wmvc:context-lang ctx)
+                    (intern current-language-environment)))
+         (pair (assq lang-id wmvc:lang-messages)))
     (unless pair
-      (setq pair (assq t wmvc:lang-messages)))
+      (setq pair (assq 'English wmvc:lang-messages)))
     (cond
      ((null pair) msg-id)
      (t 
