@@ -77,7 +77,7 @@ This function kills the old buffer if it exists."
 (defvar wmvc:lang-messages nil)
 
 (defun wmvc:lang-register-messages (lang-id messages)
-  "Regist messages which are returned by `wmvc:get-text'.
+  "Register messages which are returned by `wmvc:get-text'.
 
 LANG-ID is a symbol which equals to a one of keys of `language-info-alist'.
 For check the allowed value, see customize of `current-language-environment'.
