@@ -595,6 +595,12 @@ CTX is a `wmvc:context'. If nil, use `current-language-environment'."
                BR
                "  Date : "
                (input :name mdate :type date)
+               BR
+               "  Link : "
+               (input :name linker :type link :url "http://www.gnu.org")
+               BR
+               "  Const : "
+               (input :name hidden-data :type const)
                BR BR
                "    " (button :title "OK" :action on-submit :validation t)
                "  " (button :title "Cancel" :action on-cancel)))
@@ -602,7 +608,7 @@ CTX is a `wmvc:context'. If nil, use `current-language-environment'."
          '((input-a . "")  (input-b . "6")
            (password . "") (check-a . t) (check-b . nil) (check-c . nil)
            (radio-a . 4) (select1 . "select2") (select2 . (3))
-           (mdate )
+           (mdate ) (hidden-data . 512)
            ))
         (validations
          '((input-a . wmvc:validation-integer)
