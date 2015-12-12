@@ -11,6 +11,10 @@
 
 (add-to-list 'load-path widget-mvc-root-path)
 
+(require 'undercover)
+(undercover "*.el"
+	    (:exclude "*-test.el")
+	    (:report-file "/tmp/undercover-report.json"))
 (require 'widget-mvc)
 (require 'espuds)
 (require 'ert)
