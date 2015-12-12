@@ -7,14 +7,14 @@
 [![Tag Version](https://img.shields.io/github/tag/kiwanami/emacs-widget-mvc.svg)](https://github.com/kiwanami/emacs-widget-mvc/tags)
 [![License](http://img.shields.io/:license-gpl3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0.html)
 
-This program is a GUI framework for emacs lisp.
-This framework is designed for the programmers who familiar with the conventional Web MVC frameworks.
+This is a GUI framework for emacs lisp.
+It is designed for the programmers who arefamiliar with the conventional Web MVC frameworks.
 
-The current status is under construction.
+:hammer_and_pick:  **This is under construction!** :hammer_and_pick:
 
 ## Applications
 
-Todo
+**TODO**
 
 ## Sample Code
 
@@ -85,25 +85,27 @@ Todo
 
 ## Manual installation
 
-Place those programs and this one (widget-mvc.el) in your load path and add following code.
+Place those programs and this one (`widget-mvc.el`) in your load path and add following code.
 
 ```lisp
 (require 'widget-mvc)
 ```
 
+Package is also available on melpa
+
 # API Document
 
-Todo
+**TODO**
 
 ### API Overview
 
-Todo
+**TODO**
 
 ![Lifecycle Overview](https://cacoo.com/diagrams/O42ZDzbVzZx31o7e-EFE0F.png)
 
 ### Details
 
-Todo
+**TODO**
 
 # License
 
