@@ -35,7 +35,7 @@
 (require 'el-mock)
 (eval-when-compile
     (require 'cl))
-(require 'emacs-widget-mvc)
+(require 'widget-mvc)
 
 (provide 'test-helper)
 ;;; test-helper.el ends here

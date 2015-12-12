@@ -1,17 +1,17 @@
 (require 'f)
 
-(defvar emacs-widget-mvc-support-path
+(defvar widget-mvc-support-path
   (f-dirname load-file-name))
 
-(defvar emacs-widget-mvc-features-path
-  (f-parent emacs-widget-mvc-support-path))
+(defvar widget-mvc-features-path
+  (f-parent widget-mvc-support-path))
 
-(defvar emacs-widget-mvc-root-path
-  (f-parent emacs-widget-mvc-features-path))
+(defvar widget-mvc-root-path
+  (f-parent widget-mvc-features-path))
 
-(add-to-list 'load-path emacs-widget-mvc-root-path)
+(add-to-list 'load-path widget-mvc-root-path)
 
-(require 'emacs-widget-mvc)
+(require 'widget-mvc)
 (require 'espuds)
 (require 'ert)
 
