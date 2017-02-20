@@ -43,5 +43,4 @@
 	    (:report-file "/tmp/undercover-report.json"))
 (require 'widget-mvc)
 
-(provide 'test-helper)
 ;;; test-helper.el ends here
